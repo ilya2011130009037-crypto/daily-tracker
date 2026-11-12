@@ -1,32 +1,219 @@
 (() => {
-const tg=window.Telegram?.WebApp;if(tg){tg.ready();tg.expand();}
-const KEY='daily_events_v3',THEME='daily_theme_v3', $=id=>document.getElementById(id);
-let events=[];try{events=JSON.parse(localStorage.getItem(KEY)||'[]');if(!Array.isArray(events))events=[];}catch(e){}
-let chosen=new Date(),month=new Date(new Date().getFullYear(),new Date().getMonth(),1);
-const pad=n=>String(n).padStart(2,'0'), key=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-const parse=s=>{let [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
-const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const plural=n=>n%10===1&&n%100!==11?'запись':n%10>=2&&n%10<=4&&(n%100<12||n%100>14)?'записи':'записей';
-const fmt=d=>d.toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'});
-function toast(s){$('toast').textContent=s;$('toast').classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>$('toast').classList.remove('show'),1300);if(tg?.HapticFeedback)tg.HapticFeedback.impactOccurred('light');}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(events));}catch(e){}}
-function add(name,icon){if(!name.trim())return;events.unshift({id:Date.now()+Math.random(),name:name.trim(),icon:icon||'✦',at:new Date().toISOString()});save();render();toast('Запись добавлена');}
-function remove(id){events=events.filter(e=>String(e.id)!==id);save();render();toast('Запись удалена');}
-function clear(){if(!events.length){toast('История уже пустая');return;}if(confirm('Удалить всю историю? Это нельзя отменить.')){events=[];save();render();toast('История очищена');}}
-function theme(){let t=localStorage.getItem(THEME)||'light';document.documentElement.dataset.theme=t;$('themeTop').textContent=t==='dark'?'☼':'◐';}
-function toggleTheme(){localStorage.setItem(THEME,document.documentElement.dataset.theme==='dark'?'light':'dark');theme();}
-theme();$('themeTop').onclick=toggleTheme;$('themeSetting').onclick=toggleTheme;$('clear').onclick=clear;$('clearSetting').onclick=clear;
-function page(p){document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id===p));document.querySelectorAll('.nav').forEach(x=>x.classList.toggle('active',x.dataset.page===p));if(p==='calendar')calendar();if(p==='stats')stats();if(p==='history')history();scrollTo(0,0);}
-document.querySelectorAll('[data-go]').forEach(x=>x.onclick=e=>{e.preventDefault();page(x.dataset.go)});document.querySelectorAll('.nav').forEach(x=>x.onclick=()=>page(x.dataset.page));$('calendarTop').onclick=()=>page('calendar');
-document.querySelectorAll('.quick button').forEach(x=>x.onclick=()=>add(x.dataset.name,x.dataset.icon));
-$('addForm').onsubmit=e=>{e.preventDefault();let v=$('custom').value.trim();if(v){add(v,'✦');$('custom').value='';}};
-function record(e){return `<div class="record"><div class="emoji">${esc(e.icon||'✦')}</div><div class="recordmain"><b>${esc(e.name)}</b><small>${fmt(new Date(e.at))}</small></div><span class="time">${new Date(e.at).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}</span><button class="del" data-del="${esc(e.id)}">×</button></div>`;}
-function fill(id,list,msg){$(id).innerHTML=list.length?list.map(record).join(''):`<div class="empty">${msg}</div>`;$(id).querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>remove(b.dataset.del));}
-function renderHome(){let now=new Date(),start=new Date();start.setHours(0,0,0,0);start.setDate(start.getDate()-6);$('stamp').innerHTML=`${now.toLocaleDateString('ru-RU',{month:'short'}).toUpperCase()}<b>${now.getDate()}</b>`;$('todayN').textContent=events.filter(e=>key(new Date(e.at))===key(now)).length;$('weekN').textContent=events.filter(e=>new Date(e.at)>=start).length;fill('recent',events.slice(0,4),'Пока записей нет. Добавь первое событие выше.');}
-function history(){$('historyN').textContent=`${events.length} ${plural(events.length)}`;fill('all',events,'История пока пустая.');}
-function calendar(){let y=month.getFullYear(),m=month.getMonth(),first=new Date(y,m,1),offset=(first.getDay()+6)%7,last=new Date(y,m+1,0).getDate();$('month').textContent=month.toLocaleDateString('ru-RU',{month:'long',year:'numeric'});let cells=[];for(let i=0;i<offset;i++)cells.push({d:new Date(y,m,1-offset+i),other:true});for(let d=1;d<=last;d++)cells.push({d:new Date(y,m,d),other:false});while(cells.length%7){let d=new Date(cells[cells.length-1].d);d.setDate(d.getDate()+1);cells.push({d,other:true});}let marked=new Set(events.map(e=>key(new Date(e.at))));$('days').innerHTML=cells.map(({d,other})=>{let k=key(d),c='day';if(other)c+=' other';if(k===key(new Date()))c+=' today';if(k===key(chosen))c+=' selected';if(marked.has(k))c+=' mark';return `<button class="${c}" data-date="${k}">${d.getDate()}</button>`}).join('');$('days').querySelectorAll('[data-date]').forEach(b=>b.onclick=()=>{chosen=parse(b.dataset.date);if(chosen.getMonth()!==month.getMonth())month=new Date(chosen.getFullYear(),chosen.getMonth(),1);calendar();});$('pickedTitle').textContent=fmt(chosen);let list=events.filter(e=>key(new Date(e.at))===key(chosen)).sort((a,b)=>new Date(b.at)-new Date(a.at));$('pickedCount').textContent=`${list.length} ${plural(list.length)}`;fill('pickedRecords',list,'В этот день записей нет.');}
-$('prev').onclick=()=>{month=new Date(month.getFullYear(),month.getMonth()-1,1);calendar()};$('next').onclick=()=>{month=new Date(month.getFullYear(),month.getMonth()+1,1);calendar()};
-function stats(){let start=new Date();start.setHours(0,0,0,0);start.setDate(start.getDate()-6);let list=events.filter(e=>new Date(e.at)>=start);$('statsN').textContent=list.length;let ds=[];for(let i=6;i>=0;i--){let d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-i);ds.push(d);}let nums=ds.map(d=>events.filter(e=>key(new Date(e.at))===key(d)).length),max=Math.max(1,...nums);$('chart').innerHTML=ds.map((d,i)=>`<div class="barcol"><small>${nums[i]||''}</small><div class="bar" style="height:${Math.max(3,nums[i]/max*110)}px"></div><small>${d.toLocaleDateString('ru-RU',{weekday:'short'})}</small></div>`).join('');let groups={};list.forEach(e=>groups[e.name]=(groups[e.name]||0)+1);let top=Object.entries(groups).sort((a,b)=>b[1]-a[1]).slice(0,8);$('categories').innerHTML=top.length?top.map(([n,c])=>`<div class="category"><span>✦</span><span>${esc(n)}</span><b>${c}</b></div>`).join(''):'<div class="empty">Пока мало записей для статистики.</div>';}
-function render(){renderHome();let active=document.querySelector('.page.active')?.id;if(active==='calendar')calendar();if(active==='stats')stats();if(active==='history')history();}
-render();
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+        tg.ready();
+        tg.expand();
+    }
+    const KEY = 'daily_events_v3', THEME = 'daily_theme_v3', $ = id => document.getElementById(id);
+    let events = [];
+    try {
+        events = JSON.parse(localStorage.getItem(KEY) || '[]');
+        if (!Array.isArray(events)) events = [];
+    } catch (e) {
+    }
+    let chosen = new Date(), month = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const pad = n => String(n).padStart(2, '0'),
+        key = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const parse = s => {
+        let [y, m, d] = s.split('-').map(Number);
+        return new Date(y, m - 1, d)
+    };
+    const esc = s => String(s).replace(/[&<>"']/g, c => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[c]));
+    const plural = n => n % 10 === 1 && n % 100 !== 11 ? 'запись' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'записи' : 'записей';
+    const fmt = d => d.toLocaleDateString('ru-RU', {day: 'numeric', month: 'long', year: 'numeric'});
+
+    function toast(s) {
+        $('toast').textContent = s;
+        $('toast').classList.add('show');
+        clearTimeout(toast.t);
+        toast.t = setTimeout(() => $('toast').classList.remove('show'), 1300);
+        if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+    }
+
+    function save() {
+        try {
+            localStorage.setItem(KEY, JSON.stringify(events));
+        } catch (e) {
+        }
+    }
+
+    function add(name, icon) {
+        if (!name.trim()) return;
+        events.unshift({
+            id: Date.now() + Math.random(),
+            name: name.trim(),
+            icon: icon || '✦',
+            at: new Date().toISOString()
+        });
+        save();
+        render();
+        toast('Запись добавлена');
+    }
+
+    function remove(id) {
+        events = events.filter(e => String(e.id) !== id);
+        save();
+        render();
+        toast('Запись удалена');
+    }
+
+    function clear() {
+        if (!events.length) {
+            toast('История уже пустая');
+            return;
+        }
+        if (confirm('Удалить всю историю? Это нельзя отменить.')) {
+            events = [];
+            save();
+            render();
+            toast('История очищена');
+        }
+    }
+
+    function theme() {
+        let t = localStorage.getItem(THEME) || 'light';
+        document.documentElement.dataset.theme = t;
+        $('themeTop').textContent = t === 'dark' ? '☼' : '◐';
+    }
+
+    function toggleTheme() {
+        localStorage.setItem(THEME, document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+        theme();
+    }
+
+    theme();
+    $('themeTop').onclick = toggleTheme;
+    $('themeSetting').onclick = toggleTheme;
+    $('clear').onclick = clear;
+    $('clearSetting').onclick = clear;
+
+    function page(p) {
+        document.querySelectorAll('.page').forEach(x => x.classList.toggle('active', x.id === p));
+        document.querySelectorAll('.nav').forEach(x => x.classList.toggle('active', x.dataset.page === p));
+        if (p === 'calendar') calendar();
+        if (p === 'stats') stats();
+        if (p === 'history') history();
+        scrollTo(0, 0);
+    }
+
+    document.querySelectorAll('[data-go]').forEach(x => x.onclick = e => {
+        e.preventDefault();
+        page(x.dataset.go)
+    });
+    document.querySelectorAll('.nav').forEach(x => x.onclick = () => page(x.dataset.page));
+    $('calendarTop').onclick = () => page('calendar');
+    document.querySelectorAll('.quick button').forEach(x => x.onclick = () => add(x.dataset.name, x.dataset.icon));
+    $('addForm').onsubmit = e => {
+        e.preventDefault();
+        let v = $('custom').value.trim();
+        if (v) {
+            add(v, '✦');
+            $('custom').value = '';
+        }
+    };
+
+    function record(e) {
+        return `<div class="record"><div class="emoji">${esc(e.icon || '✦')}</div><div class="recordmain"><b>${esc(e.name)}</b><small>${fmt(new Date(e.at))}</small></div><span class="time">${new Date(e.at).toLocaleTimeString('ru-RU', {
+            hour: '2-digit',
+            minute: '2-digit'
+        })}</span><button class="del" data-del="${esc(e.id)}">×</button></div>`;
+    }
+
+    function fill(id, list, msg) {
+        $(id).innerHTML = list.length ? list.map(record).join('') : `<div class="empty">${msg}</div>`;
+        $(id).querySelectorAll('[data-del]').forEach(b => b.onclick = () => remove(b.dataset.del));
+    }
+
+    function renderHome() {
+        let now = new Date(), start = new Date();
+        start.setHours(0, 0, 0, 0);
+        start.setDate(start.getDate() - 6);
+        $('stamp').innerHTML = `${now.toLocaleDateString('ru-RU', {month: 'short'}).toUpperCase()}<b>${now.getDate()}</b>`;
+        $('todayN').textContent = events.filter(e => key(new Date(e.at)) === key(now)).length;
+        $('weekN').textContent = events.filter(e => new Date(e.at) >= start).length;
+        fill('recent', events.slice(0, 4), 'Пока записей нет. Добавь первое событие выше.');
+    }
+
+    function history() {
+        $('historyN').textContent = `${events.length} ${plural(events.length)}`;
+        fill('all', events, 'История пока пустая.');
+    }
+
+    function calendar() {
+        let y = month.getFullYear(), m = month.getMonth(), first = new Date(y, m, 1), offset = (first.getDay() + 6) % 7,
+            last = new Date(y, m + 1, 0).getDate();
+        $('month').textContent = month.toLocaleDateString('ru-RU', {month: 'long', year: 'numeric'});
+        let cells = [];
+        for (let i = 0; i < offset; i++) cells.push({d: new Date(y, m, 1 - offset + i), other: true});
+        for (let d = 1; d <= last; d++) cells.push({d: new Date(y, m, d), other: false});
+        while (cells.length % 7) {
+            let d = new Date(cells[cells.length - 1].d);
+            d.setDate(d.getDate() + 1);
+            cells.push({d, other: true});
+        }
+        let marked = new Set(events.map(e => key(new Date(e.at))));
+        $('days').innerHTML = cells.map(({d, other}) => {
+            let k = key(d), c = 'day';
+            if (other) c += ' other';
+            if (k === key(new Date())) c += ' today';
+            if (k === key(chosen)) c += ' selected';
+            if (marked.has(k)) c += ' mark';
+            return `<button class="${c}" data-date="${k}">${d.getDate()}</button>`
+        }).join('');
+        $('days').querySelectorAll('[data-date]').forEach(b => b.onclick = () => {
+            chosen = parse(b.dataset.date);
+            if (chosen.getMonth() !== month.getMonth()) month = new Date(chosen.getFullYear(), chosen.getMonth(), 1);
+            calendar();
+        });
+        $('pickedTitle').textContent = fmt(chosen);
+        let list = events.filter(e => key(new Date(e.at)) === key(chosen)).sort((a, b) => new Date(b.at) - new Date(a.at));
+        $('pickedCount').textContent = `${list.length} ${plural(list.length)}`;
+        fill('pickedRecords', list, 'В этот день записей нет.');
+    }
+
+    $('prev').onclick = () => {
+        month = new Date(month.getFullYear(), month.getMonth() - 1, 1);
+        calendar()
+    };
+    $('next').onclick = () => {
+        month = new Date(month.getFullYear(), month.getMonth() + 1, 1);
+        calendar()
+    };
+
+    function stats() {
+        let start = new Date();
+        start.setHours(0, 0, 0, 0);
+        start.setDate(start.getDate() - 6);
+        let list = events.filter(e => new Date(e.at) >= start);
+        $('statsN').textContent = list.length;
+        let ds = [];
+        for (let i = 6; i >= 0; i--) {
+            let d = new Date();
+            d.setHours(0, 0, 0, 0);
+            d.setDate(d.getDate() - i);
+            ds.push(d);
+        }
+        let nums = ds.map(d => events.filter(e => key(new Date(e.at)) === key(d)).length), max = Math.max(1, ...nums);
+        $('chart').innerHTML = ds.map((d, i) => `<div class="barcol"><small>${nums[i] || ''}</small><div class="bar" style="height:${Math.max(3, nums[i] / max * 110)}px"></div><small>${d.toLocaleDateString('ru-RU', {weekday: 'short'})}</small></div>`).join('');
+        let groups = {};
+        list.forEach(e => groups[e.name] = (groups[e.name] || 0) + 1);
+        let top = Object.entries(groups).sort((a, b) => b[1] - a[1]).slice(0, 8);
+        $('categories').innerHTML = top.length ? top.map(([n, c]) => `<div class="category"><span>✦</span><span>${esc(n)}</span><b>${c}</b></div>`).join('') : '<div class="empty">Пока мало записей для статистики.</div>';
+    }
+
+    function render() {
+        renderHome();
+        let active = document.querySelector('.page.active')?.id;
+        if (active === 'calendar') calendar();
+        if (active === 'stats') stats();
+        if (active === 'history') history();
+    }
+
+    render();
 })();

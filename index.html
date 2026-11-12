@@ -1,23 +1,134 @@
 <!doctype html>
-<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#f4f1e9"><title>daily. — трекер</title><link rel="stylesheet" href="style.css"><script src="https://telegram.org/js/telegram-web-app.js"></script></head>
-<body><div class="app">
-<header><a class="logo" href="#" data-go="home">daily<span>.</span></a><div><button id="themeTop" class="round" title="Сменить тему">◐</button><button id="calendarTop" class="round" title="Календарь">▦</button></div></header>
-<main>
-<section class="page active" id="home"><small class="eyebrow">МОЙ ДЕНЬ</small><div class="hero"><div><h1>Привет.<br><em>Как проходит день?</em></h1><p>Отмечай события — потом легко вспомнишь, чем был занят.</p></div><div class="stamp" id="stamp"></div></div>
-<div class="metrics"><article class="metric dark"><small>ЗАПИСЕЙ СЕГОДНЯ</small><b id="todayN">0</b><span>событий отмечено</span></article><article class="metric"><small>ЗА 7 ДНЕЙ</small><b id="weekN">0</b><span>записей за неделю</span></article></div>
-<div class="heading"><div><small class="eyebrow">БЫСТРАЯ ОТМЕТКА</small><h2>Что сделал?</h2></div><button class="link" data-go="history">Вся история ↗</button></div>
-<div class="quick">
-<button data-name="Поел" data-icon="🍽️"><i>🍽️</i>Поел</button><button data-name="Выпил воду" data-icon="💧"><i>💧</i>Вода</button><button data-name="Тренировка" data-icon="🏋️"><i>🏋️</i>Тренировка</button><button data-name="Футбол" data-icon="⚽"><i>⚽</i>Футбол</button><button data-name="Прогулка" data-icon="🚶"><i>🚶</i>Прогулка</button><button data-name="Учёба" data-icon="📚"><i>📚</i>Учёба</button><button data-name="Сон" data-icon="🌙"><i>🌙</i>Сон</button><button data-name="Чтение" data-icon="📖"><i>📖</i>Чтение</button>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <meta name="theme-color" content="#f4f1e9">
+    <title>daily. — трекер</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+<div class="app">
+    <header><a class="logo" href="#" data-go="home">daily tracker
+        <span>.</span></a>
+        <div>
+            <button id="themeTop" class="round" title="Сменить тему">◐</button>
+            <button id="calendarTop" class="round" title="Календарь">▦</button>
+        </div>
+    </header>
+    <main>
+        <section class="page active" id="home"><small class="eyebrow">МОЙ ДЕНЬ</small>
+            <div class="hero">
+                <div><h1>Привет.<br><em>Как проходит день?</em></h1>
+                    <p>Отмечай события — потом легко вспомнишь, чем был занят.</p></div>
+                <div class="stamp" id="stamp"></div>
+            </div>
+            <div class="metrics">
+                <article class="metric dark"><small>ЗАПИСЕЙ СЕГОДНЯ</small><b
+                        id="todayN">0</b><span>событий отмечено</span></article>
+                <article class="metric"><small>ЗА 7 ДНЕЙ</small><b id="weekN">0</b><span>записей за неделю</span>
+                </article>
+            </div>
+            <div class="heading">
+                <div><small class="eyebrow">БЫСТРАЯ ОТМЕТКА</small>
+                    <h2>Что сделал?</h2></div>
+                <button class="link" data-go="history">Вся история ↗</button>
+            </div>
+            <div class="quick">
+                <button data-name="Поел" data-icon="🥣"><i>🥣️</i>Поел</button>
+                <button data-name="Выпил воду" data-icon="💧"><i>💧</i>Выпил 0.5л</button>
+                <button data-name="Тренировка" data-icon="🏋️"><i>🏋️</i>Тренировка</button>
+                <button data-name="Футбол" data-icon="🚿"><i>🚿</i>Холодный душ</button>
+                <button data-name="Прогулка" data-icon="🚶"><i>🚶</i>Прогулка 30 мин</button>
+                <button data-name="Учёба" data-icon="📚"><i>📚</i>Учёба</button>
+                <button data-name="Сон" data-icon="🌙"><i>🌙</i>Сон(больше 80%)</button>
+                <button data-name="Чтение" data-icon="📖"><i>📖</i>Чтение 15 мин</button>
+            </div>
+            <form id="addForm"><label for="custom">Добавить свою запись</label>
+                <div class="inputrow"><input id="custom" maxlength="70" placeholder="Например, сходил в магазин">
+                    <button class="primary">Добавить</button>
+                </div>
+            </form>
+            <div class="heading">
+                <div><small class="eyebrow">ПОСЛЕДНИЕ ЗАПИСИ</small>
+                    <h2>Недавно</h2></div>
+                <button class="link" data-go="calendar">Календарь ↗</button>
+            </div>
+            <div class="records surface" id="recent"></div>
+        </section>
+
+        <section class="page" id="calendar"><small class="eyebrow">АРХИВ ПО ДАТАМ</small>
+            <h1 class="pagetitle">Календарь</h1>
+            <p>Выбери день, чтобы посмотреть свои записи.</p>
+            <div class="surface cal">
+                <div class="month">
+                    <button id="prev">‹</button>
+                    <h2 id="month"></h2>
+                    <button id="next">›</button>
+                </div>
+                <div class="days weekdays">
+                    <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
+                </div>
+                <div class="days" id="days"></div>
+                <small class="legend">● Есть записи</small></div>
+            <div class="heading">
+                <div><small class="eyebrow">ВЫБРАННАЯ ДАТА</small>
+                    <h2 id="pickedTitle">Сегодня</h2></div>
+                <span class="pill" id="pickedCount">0 записей</span></div>
+            <div class="records surface" id="pickedRecords"></div>
+        </section>
+
+        <section class="page" id="stats"><small class="eyebrow">ТВОЯ АКТИВНОСТЬ</small>
+            <h1 class="pagetitle">Статистика</h1>
+            <p>Обзор последних семи дней.</p>
+            <div class="surface statbox"><small>ЗАПИСЕЙ ЗА 7 ДНЕЙ</small><b id="statsN">0</b></div>
+            <div class="heading">
+                <div><small class="eyebrow">ПО ДНЯМ</small>
+                    <h2>Эта неделя</h2></div>
+            </div>
+            <div class="surface chart" id="chart"></div>
+            <div class="heading">
+                <div><small class="eyebrow">ЧАЩЕ ВСЕГО</small>
+                    <h2>События</h2></div>
+            </div>
+            <div class="surface records" id="categories"></div>
+        </section>
+
+        <section class="page" id="history"><small class="eyebrow">ВСЕ ТВОИ СОБЫТИЯ</small>
+            <h1 class="pagetitle">История</h1>
+            <p>Удаляй отдельные записи или очисти всё.</p>
+            <div class="toolbar"><span class="pill" id="historyN">0 записей</span>
+                <button class="danger" id="clear">Удалить всё</button>
+            </div>
+            <div class="surface records" id="all"></div>
+        </section>
+
+        <section class="page" id="settings"><small class="eyebrow">ПЕРСОНАЛЬНЫЕ НАСТРОЙКИ</small>
+            <h1 class="pagetitle">Настройки</h1>
+            <p>Настрой приложение под себя.</p>
+            <div class="surface settings">
+                <div class="setting">
+                    <div><b>Внешний вид</b><small>Светлая или тёмная тема</small></div>
+                    <button id="themeSetting">Сменить тему</button>
+                </div>
+                <div class="setting">
+                    <div><b>Очистить историю</b><small>Удалить все сохранённые события</small></div>
+                    <button class="danger" id="clearSetting">Удалить всё</button>
+                </div>
+            </div>
+            <p class="about"><b>daily.</b><br>Личный дневник активности.</p>
+        </section>
+    </main>
+    <nav>
+        <button class="nav active" data-page="home"><i>⌂</i>Главная</button>
+        <button class="nav" data-page="calendar"><i>▦</i>Календарь</button>
+        <button class="nav" data-page="stats"><i>▥</i>Статистика</button>
+        <button class="nav" data-page="history"><i>≡</i>История</button>
+        <button class="nav" data-page="settings"><i>⚙</i>Настройки</button>
+    </nav>
 </div>
-<form id="addForm"><label for="custom">Добавить своё событие</label><div class="inputrow"><input id="custom" maxlength="70" placeholder="Например, сходил в магазин"><button class="primary">Добавить</button></div></form>
-<div class="heading"><div><small class="eyebrow">ПОСЛЕДНИЕ ЗАПИСИ</small><h2>Недавно</h2></div><button class="link" data-go="calendar">Календарь ↗</button></div><div class="records surface" id="recent"></div></section>
-
-<section class="page" id="calendar"><small class="eyebrow">АРХИВ ПО ДАТАМ</small><h1 class="pagetitle">Календарь</h1><p>Выбери день, чтобы посмотреть свои записи.</p><div class="surface cal"><div class="month"><button id="prev">‹</button><h2 id="month"></h2><button id="next">›</button></div><div class="days weekdays"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div><div class="days" id="days"></div><small class="legend">● Есть записи</small></div><div class="heading"><div><small class="eyebrow">ВЫБРАННАЯ ДАТА</small><h2 id="pickedTitle">Сегодня</h2></div><span class="pill" id="pickedCount">0 записей</span></div><div class="records surface" id="pickedRecords"></div></section>
-
-<section class="page" id="stats"><small class="eyebrow">ТВОЯ АКТИВНОСТЬ</small><h1 class="pagetitle">Статистика</h1><p>Обзор последних семи дней.</p><div class="surface statbox"><small>ЗАПИСЕЙ ЗА 7 ДНЕЙ</small><b id="statsN">0</b></div><div class="heading"><div><small class="eyebrow">ПО ДНЯМ</small><h2>Эта неделя</h2></div></div><div class="surface chart" id="chart"></div><div class="heading"><div><small class="eyebrow">ЧАЩЕ ВСЕГО</small><h2>События</h2></div></div><div class="surface records" id="categories"></div></section>
-
-<section class="page" id="history"><small class="eyebrow">ВСЕ ТВОИ СОБЫТИЯ</small><h1 class="pagetitle">История</h1><p>Удаляй отдельные записи или очисти всё.</p><div class="toolbar"><span class="pill" id="historyN">0 записей</span><button class="danger" id="clear">Удалить всё</button></div><div class="surface records" id="all"></div></section>
-
-<section class="page" id="settings"><small class="eyebrow">ПЕРСОНАЛЬНЫЕ НАСТРОЙКИ</small><h1 class="pagetitle">Настройки</h1><p>Настрой приложение под себя.</p><div class="surface settings"><div class="setting"><div><b>Внешний вид</b><small>Светлая или тёмная тема</small></div><button id="themeSetting">Сменить тему</button></div><div class="setting"><div><b>Очистить историю</b><small>Удалить все сохранённые события</small></div><button class="danger" id="clearSetting">Удалить всё</button></div></div><p class="about"><b>daily.</b><br>Личный дневник активности. Записи пока хранятся в этом браузере.</p></section>
-</main>
-<nav><button class="nav active" data-page="home"><i>⌂</i>Главная</button><button class="nav" data-page="calendar"><i>▦</i>Календарь</button><button class="nav" data-page="stats"><i>▥</i>Статистика</button><button class="nav" data-page="history"><i>≡</i>История</button><button class="nav" data-page="settings"><i>⚙</i>Настройки</button></nav></div><div id="toast"></div><script src="app.js"></script></body></html>
+<div id="toast"></div>
+<script src="app.js"></script>
+</body>
+</html>
